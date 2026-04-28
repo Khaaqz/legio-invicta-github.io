@@ -1,0 +1,47 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Messages collection
+    match /messages/{messageId} {
+      allow read: if true; // Publicly readable for the guestbook
+      allow create: if isValidMessage(request.resource.data);
+      allow update, delete: if false; // Messages are immutable after creation
+    }
+
+    // Albums collection
+    match /albums/{albumId} {
+      allow read: if true;
+      allow create: if isValidAlbum(request.resource.data);
+      allow update, delete: if false; 
+    }
+
+    match /test/connection {
+      allow read: if true;
+    }
+
+    function isValidMessage(data) {
+      return data.keys().hasAll(['name', 'class', 'content', 'createdAt'])
+        && data.keys().size() == 4
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.class is string && data.class.size() > 0 && data.class.size() <= 20
+        && data.content is string && data.content.size() > 0 && data.content.size() <= 1000
+        && data.createdAt == request.time;
+    }
+
+    function isValidAlbum(data) {
+      return data.keys().hasAll(['title', 'category', 'cover', 'items', 'createdAt', 'description'])
+        && data.keys().size() == 6
+        && data.title is string && data.title.size() > 0
+        && data.description is string
+        && data.category is string
+        && data.items is list
+        && data.createdAt == request.time;
+    }
+  }
+}
